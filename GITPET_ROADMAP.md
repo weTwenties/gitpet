@@ -18,16 +18,75 @@ GitPet không phải công cụ chấm năng suất, kỹ năng hay seniority.
 
 ---
 
+## Tiến độ (cập nhật 2026-07-12)
+
+**Prototype V0.2** — engine + renderer + route `/:username` + README card đã chạy local.
+
+| Phase | Trạng thái | Ghi chú |
+| --- | --- | --- |
+| 0 Foundation | ~40% | Next.js single app, chưa monorepo / test / CI |
+| 1 Route shell | ~90% | Thiếu stale-cache UI riêng |
+| 2 GitHub collector | ~85% | Server-side + TTL cache; chưa stale fallback |
+| 3 Archetypes | ~80% | Chưa hysteresis theo thời gian |
+| 4 Identity | ~90% | Chưa unit test |
+| 5 Fusion | ~75% | Trait slot cơ bản; chưa conflict rules đầy đủ |
+| 6 Daily state | ~85% | Chưa animation PR/review riêng |
+| 7 PetProfile contract | ✅ | Zod schema + versioning |
+| 8 Web scene | ~85% | SVG layered (chưa PixiJS) |
+| 9 Testing | ~5% | Chỉ có `demoEngineInput` fixture |
+| 10 CI/CD | 0% | Dự kiến Vercel |
+| 11 Launch docs | ~20% | README cập nhật |
+
+### Stack thực tế (điều chỉnh so với roadmap gốc)
+
+| Roadmap gốc | Hiện tại |
+| --- | --- |
+| pnpm monorepo `apps/web` + `apps/api` | npm, single Next.js app trong `src/` |
+| Vite + React Router | Next.js 16 App Router |
+| PixiJS / Canvas 2D | SVG pixel renderer (string-based, reuse 3 nơi) |
+| Cloudflare Worker + KV | Next.js server components + Route Handlers + `fetch` cache |
+| Cloudflare Pages | **Dự kiến Vercel** (free tier) |
+
+### Cấu trúc hiện tại
+
+```txt
+gitpet/
+├── src/
+│   ├── app/
+│   │   ├── page.tsx                    # landing
+│   │   ├── [username]/                 # profile full-screen
+│   │   └── api/card/[username]/        # SVG embed cho README  ← ngoài roadmap gốc
+│   ├── components/
+│   └── lib/
+│       ├── pet-engine/                 # identity, archetypes, fusion, state, schema
+│       ├── pet-renderer/               # sprites → SVG scene / card / standalone
+│       └── github/                     # server-side collector
+├── public/
+└── GITPET_ROADMAP.md
+```
+
+### Bước tiếp theo ưu tiên
+
+```txt
+1. Vitest + fixtures (Phase 9)
+2. .env.example + script typecheck
+3. Deploy Vercel
+4. Hysteresis archetype + stale-cache fallback
+5. E2E Playwright smoke
+```
+
+---
+
 ## Product principles
 
-- [ ] Cùng username luôn tạo ra cùng base pet khi cùng algorithm version.
-- [ ] Tech stack chỉ thay đổi trait, outfit, workstation, room và effect; không thay toàn bộ pet ngẫu nhiên.
-- [ ] Daily activity thay đổi mood/action nhanh hơn appearance.
-- [ ] Pet không chết và không trừng phạt user khi nghỉ.
-- [ ] UI phải ghi rõ kết quả dựa trên **public GitHub-visible activity**.
-- [ ] Refresh trang không được reroll pet.
-- [ ] Mọi thuật toán generation đều deterministic và versioned.
-- [ ] Không hiển thị progress bar kỹ năng, phần trăm thành thạo hay developer ranking.
+- [x] Cùng username luôn tạo ra cùng base pet khi cùng algorithm version.
+- [x] Tech stack chỉ thay đổi trait, outfit, workstation, room và effect; không thay toàn bộ pet ngẫu nhiên.
+- [x] Daily activity thay đổi mood/action nhanh hơn appearance.
+- [x] Pet không chết và không trừng phạt user khi nghỉ.
+- [x] UI phải ghi rõ kết quả dựa trên **public GitHub-visible activity**.
+- [x] Refresh trang không được reroll pet *(identity ổn định; mood có thể đổi khi GitHub data đổi — đúng thiết kế)*.
+- [x] Mọi thuật toán generation đều deterministic và versioned.
+- [x] Không hiển thị progress bar kỹ năng, phần trăm thành thạo hay developer ranking.
 
 ---
 
@@ -35,16 +94,20 @@ GitPet không phải công cụ chấm năng suất, kỹ năng hay seniority.
 
 ## Workspace
 
-- [ ] Khởi tạo pnpm workspace.
-- [ ] Bật TypeScript strict mode.
-- [ ] Thêm ESLint + Prettier.
+- [ ] Khởi tạo pnpm workspace. *(đang dùng npm single app)*
+- [x] Bật TypeScript strict mode.
+- [x] Thêm ESLint.
+- [ ] Thêm Prettier.
 - [ ] Thêm Vitest.
 - [ ] Thêm Playwright.
-- [ ] Tạo root scripts: `dev`, `lint`, `typecheck`, `test`, `build`.
+- [x] Tạo root scripts: `dev`, `lint`, `build`.
+- [ ] Tạo root scripts: `typecheck`, `test`.
 - [ ] Tạo `.env.example` không chứa credential thật.
-- [ ] Viết README ngắn mô tả product, architecture và scope V1.
+- [x] Viết README ngắn mô tả product, architecture và scope V1.
 
 ## Proposed structure
+
+*Roadmap gốc đề xuất monorepo — hiện tại gom logic vào `src/lib/` thay vì `packages/`.*
 
 ```txt
 gitpet/
@@ -63,37 +126,38 @@ gitpet/
 
 ## Technology choice
 
-- [ ] Frontend: React + Vite + TypeScript.
-- [ ] Routing: React Router.
-- [ ] Scene renderer: PixiJS hoặc Canvas 2D.
-- [ ] API: Cloudflare Worker.
-- [ ] API framework: Hono hoặc TypeScript handler gọn.
-- [ ] Validation: Zod.
-- [ ] Cache: Cloudflare KV.
-- [ ] Hosting: Cloudflare Pages + Workers.
+- [x] Frontend: React + TypeScript. *(Next.js thay Vite)*
+- [x] Routing: App Router `/:username`. *(thay React Router)*
+- [x] Scene renderer: SVG layered pixel art. *(thay PixiJS — cùng assets dùng cho web + README card)*
+- [x] API: Next.js Route Handlers + server components. *(thay Cloudflare Worker)*
+- [ ] API framework: Hono hoặc TypeScript handler gọn. *(không cần — Next.js đủ)*
+- [x] Validation: Zod.
+- [x] Cache: Next.js `fetch` revalidate theo TTL. *(thay Cloudflare KV)*
+- [ ] Hosting: Vercel *(đã chọn, chưa deploy)* / Cloudflare Pages + Workers.
 
 ---
 
 # Phase 1 — Public route and application shell
 
-- [ ] Implement route `/:username`.
-- [ ] Normalize username casing an toàn.
-- [ ] Loading state.
-- [ ] User not found state.
-- [ ] GitHub rate limit / unavailable state.
-- [ ] Stale-cache state + `lastSyncedAt`.
-- [ ] Canonical URL cho từng username.
-- [ ] Responsive shell desktop/mobile.
-- [ ] Share/copy-link action.
+- [x] Implement route `/:username`.
+- [x] Normalize username casing an toàn *(redirect về canonical login từ GitHub)*.
+- [x] Loading state.
+- [x] User not found state.
+- [x] GitHub rate limit / unavailable state.
+- [x] `lastSyncedAt` hiển thị trên profile.
+- [ ] Stale-cache state *(UI riêng khi serve data cũ — chưa có)*
+- [x] Canonical URL cho từng username.
+- [x] Responsive shell desktop/mobile.
+- [x] Share/copy-link action *(profile link + README embed markdown)*.
 
 ### Definition of done
 
 ```txt
 /:username
-→ resolve public GitHub user
-→ return placeholder PetProfile
-→ render ổn định
-→ không expose GitHub credential
+→ resolve public GitHub user          ✅
+→ return PetProfile (Zod-validated)   ✅  (vượt mức placeholder)
+→ render ổn định                    ✅
+→ không expose GitHub credential    ✅
 ```
 
 ---
@@ -102,46 +166,48 @@ gitpet/
 
 ## Public profile
 
-- [ ] Fetch GitHub user theo login.
-- [ ] Chỉ đọc field public cần thiết.
-- [ ] Handle renamed, suspended hoặc unavailable account.
+- [x] Fetch GitHub user theo login.
+- [x] Chỉ đọc field public cần thiết.
+- [x] Handle unavailable account *(404 → not-found page)*.
+- [x] Handle renamed account *(canonical redirect theo `user.login`)*.
+- [ ] Handle suspended account *(chưa phân biệt riêng)*.
 
 ## Contributions
 
-- [ ] Fetch recent contribution activity.
-- [ ] Normalize thành activity bands:
+- [x] Fetch recent public events *(thay contribution calendar — API không auth không có full grid)*.
+- [x] Normalize thành activity bands:
   - `none`
   - `light`
   - `active`
   - `intense`
 - [ ] Loại GitPet automation activity nếu có thể.
-- [ ] Không dùng raw commit count làm productivity score.
+- [x] Không dùng raw commit count làm productivity score.
 
 ## Repositories and languages
 
-- [ ] Fetch số lượng repo public có giới hạn.
-- [ ] Bỏ fork mặc định.
-- [ ] Bỏ archived repo.
-- [ ] Bỏ chính repo GitPet.
-- [ ] Thêm recency weighting.
-- [ ] Giới hạn ảnh hưởng của một repo duy nhất.
-- [ ] Normalize language bytes bằng log hoặc square-root weighting.
+- [x] Fetch số lượng repo public có giới hạn *(per_page=100)*.
+- [x] Bỏ fork mặc định.
+- [x] Bỏ archived repo.
+- [x] Bỏ chính repo GitPet.
+- [x] Thêm recency weighting *(180 ngày)*.
+- [x] Giới hạn ảnh hưởng của một repo duy nhất *(cap = 1)*.
+- [x] Normalize language bằng square-root weighting.
 
 ## Cache
 
-- [ ] Cache profile riêng.
-- [ ] Cache tech profile riêng.
-- [ ] Cache recent activity riêng.
-- [ ] Serve stale cache khi GitHub lỗi tạm thời.
-- [ ] Không gọi GitHub bằng token từ browser.
+- [x] Cache profile riêng *(TTL 24h)*.
+- [x] Cache tech profile riêng *(repos TTL 12h)*.
+- [x] Cache recent activity riêng *(events TTL 30m)*.
+- [ ] Serve stale cache khi GitHub lỗi tạm thời *(events degrade về empty; chưa giữ snapshot cũ)*.
+- [x] Không gọi GitHub bằng token từ browser.
 
 Suggested TTL:
 
 ```txt
-Profile:        24 hours
-Tech profile:   12–24 hours
-Daily state:    15–30 minutes
-Pet profile:    15–30 minutes
+Profile:        24 hours   ✅
+Tech profile:   12 hours   ✅
+Daily state:    30 minutes ✅
+Pet profile:    derived    ✅  (engine chạy sau mỗi lần collect)
 ```
 
 ---
@@ -150,10 +216,10 @@ Pet profile:    15–30 minutes
 
 ## Initial archetypes
 
-- [ ] `interface`
-- [ ] `backend`
-- [ ] `systems`
-- [ ] `data`
+- [x] `interface`
+- [x] `backend`
+- [x] `systems`
+- [x] `data`
 
 Để sau:
 
@@ -162,40 +228,40 @@ Pet profile:    15–30 minutes
 
 ## Scoring
 
-- [ ] Mapping language → archetype.
-- [ ] Hỗ trợ mixed profile.
-- [ ] Tính primary, secondary và optional tertiary influence.
-- [ ] Trả confidence + evidence metadata.
-- [ ] Gọi đúng là **GitHub-visible stack**, không phải full tech stack của user.
+- [x] Mapping language → archetype.
+- [x] Hỗ trợ mixed profile.
+- [x] Tính primary, secondary và optional tertiary influence.
+- [x] Trả confidence + evidence metadata.
+- [x] Gọi đúng là **GitHub-visible stack**, không phải full tech stack của user.
 
 ## Stability
 
-- [ ] Tech window khoảng 180 ngày.
-- [ ] Hysteresis để pet không đổi appearance liên tục.
-- [ ] Archetype mới phải vượt margin đủ lớn mới thay primary.
-- [ ] Version thuật toán fusion.
+- [x] Tech window khoảng 180 ngày.
+- [ ] Hysteresis để pet không đổi appearance liên tục *(chưa lưu state cũ giữa các lần sync)*.
+- [x] Archetype phụ phải vượt margin mới hiện *(secondary ≥18%, tertiary ≥12%)*.
+- [x] Version thuật toán fusion.
 
 ---
 
 # Phase 4 — Deterministic pet identity
 
-- [ ] Stable hash từ normalized username.
-- [ ] Base species từ seed.
-- [ ] Body variant.
-- [ ] Face/eye variant.
-- [ ] Base palette.
-- [ ] Personality modifier nhỏ.
-- [ ] `identityVersion` trong output.
+- [x] Stable hash từ normalized username *(FNV-1a)*.
+- [x] Base species từ seed.
+- [x] Body variant.
+- [x] Face/eye variant.
+- [x] Base palette.
+- [x] Personality modifier nhỏ.
+- [x] `identityVersion` trong output.
 
 Initial species:
 
-- [ ] Cat
-- [ ] Fox
-- [ ] Rabbit
+- [x] Cat
+- [x] Fox
+- [x] Rabbit
 
 ### Tests
 
-- [ ] Cùng username + cùng version → cùng identity.
+- [ ] Cùng username + cùng version → cùng identity. *(đúng behavior, chưa có test tự động)*
 - [ ] Username khác nhau → có variation hợp lý.
 - [ ] Reload không reroll.
 - [ ] Algorithm change phải explicit bằng version.
@@ -208,29 +274,29 @@ Không vẽ một pet riêng cho từng combination công nghệ.
 
 ## Trait slots
 
-- [ ] Base body.
-- [ ] Head/ears.
-- [ ] Tail/body detail.
-- [ ] Outfit.
-- [ ] Handheld accessory.
-- [ ] Workstation.
-- [ ] Room decoration.
-- [ ] Visual effect.
+- [x] Base body *(species pixel map)*.
+- [x] Head/ears *(trong species sprite)*.
+- [ ] Tail/body detail *(có trong sprite từng species, chưa là trait slot độc lập)*.
+- [x] Outfit.
+- [x] Handheld accessory.
+- [x] Workstation.
+- [x] Room decoration.
+- [x] Visual effect.
 
 ## Influence rules
 
-- [ ] Primary archetype điều khiển outfit, workstation, room theme.
-- [ ] Secondary archetype điều khiển một major trait.
-- [ ] Tertiary archetype điều khiển một accessory/effect nhỏ.
-- [ ] Giới hạn số influence hiển thị để pet vẫn dễ đọc.
-- [ ] Trait slot conflict rules.
-- [ ] Fallback khi combination không tương thích.
-- [ ] Palette theo pet identity, không copy màu logo tech một cách máy móc.
+- [x] Primary archetype điều khiển outfit, workstation, room theme.
+- [x] Secondary archetype điều khiển accessory.
+- [x] Tertiary archetype điều khiển effect.
+- [x] Giới hạn số influence hiển thị *(top 4 languages trên UI)*.
+- [ ] Trait slot conflict rules *(chưa formal)*.
+- [x] Fallback khi combination không tương thích *(archetype `unknown`)*.
+- [x] Palette theo pet identity, không copy màu logo tech một cách máy móc.
 
 ## Versioning
 
-- [ ] `fusionVersion`.
-- [ ] `assetVersion`.
+- [x] `fusionVersion`.
+- [x] `assetVersion`.
 - [ ] Quy tắc migrate appearance cũ.
 
 ---
@@ -239,44 +305,46 @@ Không vẽ một pet riêng cho từng combination công nghệ.
 
 ## Initial actions
 
-- [ ] `idle`
-- [ ] `working`
-- [ ] `resting`
-- [ ] `celebrating`
+- [x] `idle`
+- [x] `working`
+- [x] `resting`
+- [x] `celebrating`
 
 ## Initial moods
 
-- [ ] `calm`
-- [ ] `focused`
-- [ ] `happy`
-- [ ] `sleepy`
-- [ ] `waiting`
+- [x] `calm`
+- [x] `focused`
+- [x] `happy`
+- [x] `sleepy`
+- [x] `waiting`
 
 ## Mapping
 
-- [ ] Không activity → nghỉ, đọc sách, đi dạo hoặc ngủ.
-- [ ] Light activity → chuẩn bị bàn làm việc/check task.
-- [ ] Active day → focused working.
-- [ ] Intense day → stronger focus hoặc celebration.
-- [ ] PR/review → review-board animation.
-- [ ] Release/milestone → special celebration.
-- [ ] Time of day chỉ đổi lighting.
-- [ ] Cùng data window → cùng state.
+- [x] Không activity → nghỉ / idle *(không trừng phạt)*.
+- [x] Light activity → idle / waiting.
+- [x] Active day → focused working.
+- [x] Intense day → focused hoặc happy working.
+- [ ] PR/review → review-board animation *(chưa có animation riêng)*.
+- [x] Release/milestone → special celebration.
+- [x] Time of day chỉ đổi lighting.
+- [x] Cùng data window → cùng state *(seed theo username + date + band)*.
 
 ## Anti-gamification
 
-- [ ] Không productivity score.
-- [ ] Không equate commit count với skill.
-- [ ] Không punish inactivity.
-- [ ] Không để một ngày spam commit ảnh hưởng lâu dài.
+- [x] Không productivity score.
+- [x] Không equate commit count với skill.
+- [x] Không punish inactivity.
+- [x] Không để một ngày spam commit ảnh hưởng lâu dài *(band theo tuần, không tích lũy vĩnh viễn)*.
 
 ---
 
 # Phase 7 — Versioned PetProfile contract
 
-- [ ] Tạo Zod schema cho API response.
-- [ ] Có source metadata minh bạch.
-- [ ] Version identity, fusion và asset.
+- [x] Tạo Zod schema cho API response.
+- [x] Có source metadata minh bạch.
+- [x] Version identity, fusion và asset.
+
+*Schema thực tế mở rộng thêm `faceVariant`, `personality`, `accessory`, `state.band`, stats PR/reviews so với interface gốc bên dưới.*
 
 ```ts
 interface GitPetProfile {
@@ -295,6 +363,7 @@ interface GitPetProfile {
     species: string;
     bodyVariant: string;
     palette: string;
+    // + name, faceVariant, personality
   };
 
   tech: {
@@ -307,6 +376,7 @@ interface GitPetProfile {
       weight: number;
     }>;
     confidence: number;
+    // + evidence: { reposConsidered, windowDays }
   };
 
   appearance: {
@@ -316,12 +386,14 @@ interface GitPetProfile {
     workstation: string;
     roomTheme: string;
     effect?: string;
+    // + accessory?
   };
 
   state: {
     mood: string;
     action: string;
     lighting: "day" | "evening" | "night";
+    // + band, activeDays, pullRequests, reviews
   };
 }
 ```
@@ -332,35 +404,40 @@ interface GitPetProfile {
 
 ## V1 scope
 
-- [ ] Một room layout.
-- [ ] Một desk.
-- [ ] Một workstation anchor.
-- [ ] Ba base species.
-- [ ] Bốn actions.
-- [ ] Bốn tech archetypes.
-- [ ] Day/evening/night lighting.
-- [ ] Pixel-perfect nearest-neighbor scaling.
-- [ ] Responsive desktop/mobile framing.
+- [x] Một room layout.
+- [x] Một desk.
+- [x] Một workstation anchor.
+- [x] Ba base species.
+- [x] Bốn actions.
+- [x] Bốn tech archetypes.
+- [x] Day/evening/night lighting.
+- [x] Pixel-perfect nearest-neighbor scaling *(shape-rendering="crispEdges")*.
+- [x] Responsive desktop/mobile framing.
 
 ## Rendering requirements
 
-- [ ] Layered sprite composition.
-- [ ] Consistent frame dimensions.
-- [ ] Consistent anchor points.
-- [ ] Conflict resolution khi trait overlap.
-- [ ] Missing asset fallback.
-- [ ] Reduced-motion mode.
-- [ ] Accessible text summary ngoài canvas.
+- [x] Layered sprite composition.
+- [x] Consistent frame dimensions *(16×16 grid)*.
+- [x] Consistent anchor points *(cơ bản)*.
+- [x] Conflict resolution khi trait overlap *(outfit đặt dưới mặt pet)*.
+- [x] Missing asset fallback *(unknown archetype)*.
+- [x] Reduced-motion mode.
+- [x] Accessible text summary ngoài canvas.
 
 ## Main page content
 
-- [ ] Username + GitHub profile link.
-- [ ] Pet name/generated name.
-- [ ] Mood/action hiện tại.
-- [ ] GitHub-visible archetype summary.
-- [ ] Last synced time.
-- [ ] Share URL.
-- [ ] Giải thích pet được tạo từ dữ liệu nào.
+- [x] Username + GitHub profile link.
+- [x] Pet name/generated name.
+- [x] Mood/action hiện tại.
+- [x] GitHub-visible archetype summary.
+- [x] Last synced time.
+- [x] Share URL.
+- [x] Giải thích pet được tạo từ dữ liệu nào.
+
+### Bonus (ngoài roadmap gốc)
+
+- [x] `/api/card/:username` — SVG card có animation cho README embed.
+- [x] Landing demo pet từ fixture *(không gọi GitHub)*.
 
 ---
 
@@ -380,11 +457,12 @@ interface GitPetProfile {
 
 ## Fixtures
 
+- [x] Demo fixture (`demoEngineInput` — mixed TS/Go/Python/Shell).
 - [ ] Interface-heavy profile.
 - [ ] Backend-heavy profile.
 - [ ] Systems-heavy profile.
 - [ ] Data-heavy profile.
-- [ ] Mixed profile.
+- [ ] Mixed profile *(ngoài demo)*.
 - [ ] New user ít repo.
 - [ ] User không có public repo.
 - [ ] User không có recent activity.
@@ -406,9 +484,8 @@ interface GitPetProfile {
 
 - [ ] CI: lint, typecheck, unit test, build.
 - [ ] Playwright smoke test.
-- [ ] Cloudflare Pages config.
-- [ ] Worker secrets ngoài repository.
-- [ ] KV namespace bindings.
+- [ ] Vercel project config. *(đã chọn platform)*
+- [ ] Optional `GITHUB_TOKEN` secret ngoài repository.
 - [ ] Production logging không lưu data dư thừa.
 - [ ] Cache purge/version strategy.
 - [ ] Custom domain sau khi mua.
@@ -423,10 +500,10 @@ https://gitpet.com/:username
 
 # Phase 11 — Documentation and launch
 
-- [ ] Architecture overview.
-- [ ] GitHub data limitations.
-- [ ] Privacy/public-data boundary.
-- [ ] High-level fusion rules.
+- [x] Architecture overview *(README)*.
+- [x] GitHub data limitations *(README + UI copy)*.
+- [x] Privacy/public-data boundary *(README + UI copy)*.
+- [ ] High-level fusion rules *(chưa có doc riêng)*.
 - [ ] Screenshots/video khi scene ổn định.
 - [ ] GitHub repo description + topics.
 - [ ] Live demo link.
@@ -436,6 +513,8 @@ https://gitpet.com/:username
 ---
 
 # Explicitly out of scope for V1
+
+*Những mục này cố ý chưa làm — giữ nguyên checklist để theo dõi scope.*
 
 - [ ] GitHub OAuth/login.
 - [ ] Private repository analysis.
@@ -454,29 +533,31 @@ https://gitpet.com/:username
 # Recommended implementation order
 
 ```txt
-01. Workspace foundation
-02. Fixture-based PetProfile schema
-03. Deterministic identity engine
-04. Archetype scorer
-05. Trait-based fusion resolver
-06. Daily state resolver
-07. /:username route với fixture data
-08. GitHub collector
-09. Worker API + cache
-10. Layered scene renderer
-11. CI + Playwright
-12. Production deploy
+01. Workspace foundation              [~]  Next.js + src/lib, chưa monorepo
+02. Fixture-based PetProfile schema     [x]  Zod + demoEngineInput
+03. Deterministic identity engine       [x]
+04. Archetype scorer                    [x]
+05. Trait-based fusion resolver         [x]
+06. Daily state resolver                [x]
+07. /:username route với fixture data   [x]  + GitHub thật
+08. GitHub collector                    [x]
+09. API + cache                         [x]  Next.js server (thay Worker)
+10. Layered scene renderer              [x]  SVG (thay PixiJS)
+11. CI + Playwright                     [ ]
+12. Production deploy                   [ ]  Vercel
 ```
 
 # V1 definition of done
 
 ```txt
 User mở gitpet.com/:username
-→ resolve public GitHub user
-→ tạo stable base pet identity
-→ fusion trait từ public technology profile
-→ chọn mood/action từ recent activity
-→ render responsive animated scene
-→ không expose GitHub credential
-→ giải thích rõ dữ liệu chỉ dựa trên public GitHub-visible activity
+→ resolve public GitHub user              ✅
+→ tạo stable base pet identity            ✅
+→ fusion trait từ public technology profile ✅
+→ chọn mood/action từ recent activity     ✅
+→ render responsive animated scene        ✅
+→ không expose GitHub credential          ✅
+→ giải thích rõ dữ liệu chỉ dựa trên public GitHub-visible activity ✅
 ```
+
+**Còn thiếu để gọi là V1 launch-ready:** automated tests, CI, production deploy, stale-cache UX, hysteresis archetype.
