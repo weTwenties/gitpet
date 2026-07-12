@@ -9,6 +9,7 @@ and collaboration signals unlock fusion traits.
 ## First-hatch experience
 
 - Search any public GitHub username without signing in.
+- Open a canonical pet profile at `/{username}` and share the URL directly.
 - Generate a deterministic pet profile from public events and repositories.
 - Explain why each visible trait exists through the Pet Genome.
 - Show a four-stage evolution path: Hatchling, Scout, Ranger, and Guardian.
@@ -39,6 +40,8 @@ npm run dev
 Open the local URL printed by Vite. No environment variables or GitHub token are
 required for the first version.
 
+Direct profile example: `http://localhost:3000/khanhvinhnguyen`.
+
 ## Publish this source
 
 After extracting the archive:
@@ -62,8 +65,8 @@ git push -u origin main
 
 ## Product direction
 
-The next product layer is a stable `/username` profile URL with persistent pet
-state. After that, the genome can expand into tech-stack fusion, team habitats,
+The next product layer is persistent pet state behind the stable `/username`
+URL. After that, the genome can expand into tech-stack fusion, team habitats,
 seasonal items, and shareable cards.
 
 ## Privacy and API limits
