@@ -4,8 +4,6 @@ GitPet turns a public GitHub profile into a living pixel companion. Repository
 languages shape the species, recent activity affects its level and features,
 and collaboration signals unlock fusion traits.
 
-**Live demo:** https://gitpet-lab.vinhnk-work.chatgpt.site
-
 ## First-hatch experience
 
 - Search any public GitHub username without signing in.
