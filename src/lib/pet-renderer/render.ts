@@ -1,9 +1,10 @@
-import type { GitPetProfile } from "@/lib/pet-engine";
+import { SPECIES_LABELS, type GitPetProfile } from "@/lib/pet-engine";
 import {
   ARCHETYPE_COLORS,
   LIGHTING_SKY,
   MOOD_AURA,
   PET_PALETTES,
+  paletteForSpecies,
   ROOM_WALLS,
   type PetPalette,
 } from "./palettes";
@@ -34,7 +35,8 @@ export function escapeXml(value: string): string {
 }
 
 function paletteOf(profile: GitPetProfile): PetPalette {
-  return PET_PALETTES[profile.identity.palette] ?? PET_PALETTES.amber;
+  const base = PET_PALETTES[profile.identity.palette] ?? PET_PALETTES.amber;
+  return paletteForSpecies(base, profile.identity.species);
 }
 
 function archetypeColor(profile: GitPetProfile): string {
@@ -201,8 +203,8 @@ export function petStyles(profile: GitPetProfile): string {
     action === "resting" ? "none" : `gp-blink ${mood.blink}s steps(1) infinite`;
 
   return `
-  .pet-body { animation: ${bodyAnim}; transform-origin: center bottom; transform-box: fill-box; }
-  .pet-action-working .pet-body { transform-origin: 60% 80%; }
+  .gp-body { animation: ${bodyAnim}; transform-origin: center bottom; transform-box: fill-box; }
+  .pet-action-working .gp-body { transform-origin: 60% 80%; }
   .lids-blink rect { opacity: 0; animation: ${blinkAnim}; }
   .lids-closed rect { opacity: 1; }
   .fx { animation: gp-float ${action === "celebrating" ? 1.4 : 2.6}s ease-in-out infinite; }
@@ -235,7 +237,7 @@ export function petStyles(profile: GitPetProfile): string {
   @keyframes gp-screen { 0%,100% { opacity: .55; } 50% { opacity: 1; } }
   @keyframes gp-tap { 0%,100% { transform: translateY(0); } 50% { transform: translateY(1px); } }
   @media (prefers-reduced-motion: reduce) {
-    .pet-body, .lids-blink rect, .fx, .aura, .screen-glow, .desk-tap { animation: none; }
+    .gp-body, .lids-blink rect, .fx, .aura, .screen-glow, .desk-tap { animation: none; }
   }`;
 }
 
@@ -250,8 +252,9 @@ export function renderPetGroup(profile: GitPetProfile, cell: number): string {
     D: palette.bodyDark,
     L: palette.bodyLight,
     A: palette.accent,
-    E: "#131a16",
-    N: "#131a16",
+    P: "#ff9bb8",
+    E: "#1a1210",
+    N: "#1a1210",
   };
   const map = SPECIES_SPRITES[profile.identity.species];
   const aura = MOOD_AURA[profile.state.mood];
@@ -264,7 +267,7 @@ export function renderPetGroup(profile: GitPetProfile, cell: number): string {
 
   return `
   <g class="pet-action-${profile.state.action} pet-mood-${profile.state.mood}" id="gp-pet">
-    <g class="pet-body" id="gp-pet-body">
+    <g class="gp-body" id="gp-pet-body">
       <ellipse class="aura" cx="${size / 2}" cy="${size * 0.62}" rx="${size * 0.58}" ry="${size * 0.5}" fill="${aura}"/>
       ${drawPixelMap(map, cell, fills)}
       ${drawOverlays(outfit, cell, palette, archetypeColor(profile))}
@@ -281,7 +284,7 @@ export function renderPetGroup(profile: GitPetProfile, cell: number): string {
 export function renderPetSvg(profile: GitPetProfile, sizePx = 192): string {
   const cell = Math.floor(sizePx / GRID);
   const size = GRID * cell;
-  const label = `${profile.identity.name}, a pixel ${profile.identity.species}`;
+  const label = `${profile.identity.name}, a pixel ${SPECIES_LABELS[profile.identity.species]}`;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" role="img" aria-label="${escapeXml(label)}" shape-rendering="crispEdges">
   <style>${petStyles(profile)}</style>
   ${renderPetGroup(profile, cell)}
@@ -334,44 +337,55 @@ function drawWorkstation(profile: GitPetProfile, x: number, y: number): string {
   }
 }
 
-export type SceneOptions = { width?: number; height?: number };
+export type SceneOptions = { width?: number; height?: number; cover?: boolean };
 
 /** Full-room scene: wall/floor by room theme, window lighting, desk + workstation, pet. */
 export function renderSceneSvg(profile: GitPetProfile, options: SceneOptions = {}): string {
   const width = options.width ?? 480;
   const height = options.height ?? 360;
+  const cover = options.cover ?? false;
   const room = ROOM_WALLS[profile.appearance.roomTheme] ?? ROOM_WALLS["cozy-corner"];
   const sky = LIGHTING_SKY[profile.state.lighting];
 
-  const cell = 12;
+  const cell = cover ? 15 : 12;
   const petSize = GRID * cell;
-  // Pet stands center-left; desk and workstation live on the right so they never overlap.
-  const petX = width * 0.36 - petSize / 2;
-  const floorY = height * 0.72;
+  const floorY = height * (cover ? 0.7 : 0.72);
   const petY = floorY - petSize + 14;
-
-  const deskX = width * 0.68;
   const working = profile.state.action === "working";
 
-  const label = `${profile.identity.name} the ${profile.identity.species}, ${profile.state.mood} and ${profile.state.action}`;
+  // Cover/overlay: keep décor inside the center safe band so side panels don't hide it.
+  // Card/demo mode: classic left pet + right desk composition.
+  const petX = (cover ? width * 0.46 : width * 0.36) - petSize / 2;
+  const windowX = cover ? width * 0.5 - 52 : width * 0.12;
+  const windowY = cover ? height * 0.16 : height * 0.12;
+  const deskX = cover ? petX + petSize + (working ? 8 : 28) : width * 0.68;
+  const deskTop = floorY - 34;
+  const deskWidth = cover ? Math.min(150, width * 0.18) : width * 0.32;
+  const rugX = cover ? petX - 16 : width * 0.16;
+  const rugW = cover ? petSize + 80 : width * 0.42;
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeXml(label)}" shape-rendering="crispEdges">
+  const label = `${profile.identity.name} the ${SPECIES_LABELS[profile.identity.species]}, ${profile.state.mood} and ${profile.state.action}`;
+  const sizeAttrs = cover
+    ? `width="100%" height="100%" preserveAspectRatio="xMidYMid slice"`
+    : `width="${width}" height="${height}"`;
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" ${sizeAttrs} viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeXml(label)}" shape-rendering="crispEdges">
   <style>${petStyles(profile)}</style>
   ${rect(0, 0, width, floorY, room.wall)}
   ${rect(0, floorY, width, height - floorY, room.floor)}
   <g>
-    ${rect(width * 0.12, height * 0.12, 92, 76, "#131a16")}
-    ${rect(width * 0.12 + 4, height * 0.12 + 4, 84, 68, sky.top)}
-    ${rect(width * 0.12 + 4, height * 0.12 + 38, 84, 34, sky.bottom)}
-    ${rect(width * 0.12 + 62, height * 0.12 + 12, 12, 12, sky.glow, `rx="6"`)}
-    ${rect(width * 0.12 + 42, height * 0.12, 6, 76, "#131a16")}
+    ${rect(windowX, windowY, 104, 84, "#131a16")}
+    ${rect(windowX + 4, windowY + 4, 96, 76, sky.top)}
+    ${rect(windowX + 4, windowY + 42, 96, 38, sky.bottom)}
+    ${rect(windowX + 70, windowY + 14, 14, 14, sky.glow, `rx="7"`)}
+    ${rect(windowX + 48, windowY, 6, 84, "#131a16")}
   </g>
-  ${rect(width * 0.62, floorY - 34, width * 0.32, 8, "#4a3625")}
-  ${rect(width * 0.64, floorY - 26, 8, 26, "#33251a")}
-  ${rect(width * 0.9, floorY - 26, 8, 26, "#33251a")}
-  ${drawWorkstation(profile, deskX, floorY - 34)}
-  ${rect(width * 0.16, floorY + 16, width * 0.42, 14, room.rug, `opacity="0.35" rx="7"`)}
-  <g transform="translate(${working ? petX + 24 : petX}, ${petY})">
+  ${rect(deskX - 8, deskTop, deskWidth, 8, "#4a3625")}
+  ${rect(deskX - 4, floorY - 26, 8, 26, "#33251a")}
+  ${rect(deskX + deskWidth - 20, floorY - 26, 8, 26, "#33251a")}
+  ${drawWorkstation(profile, deskX + 8, deskTop)}
+  ${rect(rugX, floorY + 14, rugW, 14, room.rug, `opacity="0.35" rx="7"`)}
+  <g transform="translate(${working && !cover ? petX + 24 : petX}, ${petY})">
     ${renderPetGroup(profile, cell)}
   </g>
 </svg>`;

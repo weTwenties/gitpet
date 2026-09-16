@@ -3,6 +3,13 @@ import { z } from "zod";
 /** Versioned PetProfile contract (roadmap Phase 7). */
 
 export const SPECIES = ["cat", "fox", "rabbit"] as const;
+
+/** Display labels for UI / SVG accessibility text. */
+export const SPECIES_LABELS: Record<(typeof SPECIES)[number], string> = {
+  cat: "cat",
+  fox: "fox",
+  rabbit: "rabbit",
+};
 export const BODY_VARIANTS = ["round", "slim", "fluffy"] as const;
 export const FACE_VARIANTS = ["bright", "sleepy", "spark"] as const;
 export const PERSONALITIES = ["curious", "steady", "playful", "quiet"] as const;

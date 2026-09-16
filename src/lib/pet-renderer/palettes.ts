@@ -1,4 +1,4 @@
-import type { Archetype, Lighting, Mood } from "@/lib/pet-engine";
+import type { Archetype, Lighting, Mood, Species } from "@/lib/pet-engine";
 
 /** Body palette roles used by the pixel maps. */
 export type PetPalette = {
@@ -16,6 +16,42 @@ export const PET_PALETTES: Record<string, PetPalette> = {
   cocoa: { body: "#b48a68", bodyDark: "#6a4a33", bodyLight: "#ecd4bd", accent: "#8fd0c9" },
   mint: { body: "#8fd0b8", bodyDark: "#47775f", bodyLight: "#ddf3e8", accent: "#f7b2ad" },
 };
+
+/** Strong species base colors (chibi sheet) — identity palette still tints lightly. */
+const SPECIES_BIAS: Record<
+  Species,
+  { body: string; dark: string; light: string; accent: string; amount: number }
+> = {
+  cat: { body: "#f4efe6", dark: "#6b4a2e", light: "#fffaf3", accent: "#e8883a", amount: 0.72 },
+  fox: { body: "#f08a3a", dark: "#b85a18", light: "#ffe8c8", accent: "#ffb0c0", amount: 0.78 },
+  rabbit: { body: "#f2a0b8", dark: "#c46a84", light: "#ffd6e4", accent: "#ffc0d0", amount: 0.8 },
+};
+
+function mixHex(a: string, b: string, t: number): string {
+  const parse = (hex: string) => {
+    const n = parseInt(hex.slice(1), 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255] as const;
+  };
+  const [ar, ag, ab] = parse(a);
+  const [br, bg, bb] = parse(b);
+  const to = (x: number) =>
+    Math.max(0, Math.min(255, Math.round(x)))
+      .toString(16)
+      .padStart(2, "0");
+  return `#${to(ar + (br - ar) * t)}${to(ag + (bg - ag) * t)}${to(ab + (bb - ab) * t)}`;
+}
+
+/** Identity palette × species bias → fills that still feel unique per username. */
+export function paletteForSpecies(base: PetPalette, species: Species): PetPalette {
+  const bias = SPECIES_BIAS[species];
+  const t = bias.amount;
+  return {
+    body: mixHex(base.body, bias.body, t),
+    bodyDark: mixHex(base.bodyDark, bias.dark, t),
+    bodyLight: mixHex(base.bodyLight, bias.light, t),
+    accent: mixHex(base.accent, bias.accent, t),
+  };
+}
 
 /** Archetype accent colors drive outfit/workstation/effects, not the pet body. */
 export const ARCHETYPE_COLORS: Record<Archetype | "unknown", string> = {

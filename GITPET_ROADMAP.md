@@ -259,6 +259,8 @@ Initial species:
 - [x] Fox
 - [x] Rabbit
 
+`identityVersion` bumped when the species pool changes.
+
 ### Tests
 
 - [ ] Cùng username + cùng version → cùng identity. *(đúng behavior, chưa có test tự động)*
@@ -407,7 +409,7 @@ interface GitPetProfile {
 - [x] Một room layout.
 - [x] Một desk.
 - [x] Một workstation anchor.
-- [x] Ba base species.
+- [x] Ba base species (cat, fox, rabbit).
 - [x] Bốn actions.
 - [x] Bốn tech archetypes.
 - [x] Day/evening/night lighting.

@@ -1,10 +1,11 @@
-import type {
-  ActivityBand,
-  ArchetypeOrUnknown,
-  GitPetProfile,
-  Mood,
-  PetAction,
-  Personality,
+import {
+  SPECIES_LABELS,
+  type ActivityBand,
+  type ArchetypeOrUnknown,
+  type GitPetProfile,
+  type Mood,
+  type PetAction,
+  type Personality,
 } from "./schema";
 
 /** Human-readable copy for the /:username dossier. Pure — no React. */
@@ -190,7 +191,7 @@ export function buildProfileDossier(profile: GitPetProfile): ProfileDossier {
       },
     ],
     identityBits: [
-      { label: "Species", value: profile.identity.species },
+      { label: "Species", value: SPECIES_LABELS[profile.identity.species] },
       { label: "Body", value: profile.identity.bodyVariant },
       { label: "Face", value: profile.identity.faceVariant },
       { label: "Palette", value: profile.identity.palette },

@@ -1,4 +1,4 @@
-import type { GitPetProfile } from "@/lib/pet-engine";
+import { SPECIES_LABELS, type GitPetProfile } from "@/lib/pet-engine";
 import { ARCHETYPE_COLORS, MOOD_AURA } from "./palettes";
 import { escapeXml, petStyles, renderPetGroup } from "./render";
 import { GRID } from "./sprites";
@@ -60,7 +60,7 @@ export function renderCardSvg(profile: GitPetProfile): { svg: string; width: num
     ${renderPetGroup(profile, cell)}
   </g>
   <text x="156" y="38" font-size="17" font-weight="700" fill="#f5f7f2">${escapeXml(profile.identity.name)}</text>
-  <text x="156" y="58" font-size="11" fill="#9aa79e">@${escapeXml(profile.username)} · ${escapeXml(profile.identity.species)} · ${escapeXml(profile.identity.personality)}</text>
+  <text x="156" y="58" font-size="11" fill="#9aa79e">@${escapeXml(profile.username)} · ${escapeXml(SPECIES_LABELS[profile.identity.species])} · ${escapeXml(profile.identity.personality)}</text>
   <text x="156" y="84" font-size="12" font-weight="600" fill="${accent}">${escapeXml(archetypeLabel)}</text>
   <text x="156" y="104" font-size="11" fill="#c3cec6">${escapeXml(stateLine)}</text>
   ${chips}

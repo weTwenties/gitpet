@@ -2,68 +2,79 @@ import type { Species } from "@/lib/pet-engine";
 
 /**
  * Pixel maps: 16×16 grids, one char per cell.
- *   .  empty        B  body        D  body dark (outline/shade)
- *   L  body light   A  accent (inner ear)
- *   E  eye          N  nose
- * The same maps feed the web scene, the README card and the landing demo.
+ *   .  empty
+ *   B  body (main fill)
+ *   D  darker patch / shade
+ *   L  light / white face patch
+ *   A  accent (inner ear, second coat color, beak, mane)
+ *   P  pink cheek blush (fixed cute pink)
+ *   E  eye
+ *   N  nose / mouth
+ *
+ * Style: chibi kawaii pixel pets (reference sheet) —
+ * big round head, tiny stub body, no heavy outline ring,
+ * 2×2 eyes, pink cheek dots, silhouette from ears/features.
  */
 export const GRID = 16;
 
+/** Calico: white face, dark left ear, orange right ear, blush. */
 const CAT: string[] = [
   "................",
-  ".DD..........DD.",
-  ".DAD........DAD.",
-  ".DBAD......DABD.",
-  ".DBBDDDDDDDDBBD.",
-  ".DBBBBBBBBBBBBD.",
-  ".DBBBBBBBBBBBBD.",
-  ".DBEBBBBBBBBEBD.",
-  ".DBBBBBNNBBBBBD.",
-  "..DBBBBBBBBBBD..",
-  "..DBLLLLLLLLBD..",
-  ".DBBLLLLLLLLBBD.",
-  ".DBBBLLLLLLBBBD.",
-  ".DBBBBBBBBBBBBD.",
-  "..DBBD.DD.DBBD..",
-  "..DDD......DDD..",
+  "...D........A...",
+  "..DDD......AAA..",
+  "..DLD......ALA..",
+  "...LLLLLLLLLL...",
+  "..LLLLLLLLLLLL..",
+  "..LLEELLLLEELL..",
+  "..LLEELLLLEELL..",
+  "..LLLPLLLPLLLL..",
+  "..LLLLLNNLLLLL..",
+  "...LLLLLLLLLL...",
+  ".....BBBBBB.....",
+  ".....BBBBBB.....",
+  "......B..B......",
+  "................",
+  "................",
 ];
 
+/** Bright fox: tall triangles, white muzzle, bushy tail stub. */
 const FOX: string[] = [
+  "................",
+  ".D............D.",
   ".DD..........DD.",
   ".DAD........DAD.",
-  ".DAAD......DAAD.",
-  ".DBAAD....DAABD.",
-  ".DBBADDDDDDABBD.",
-  "DDBBBBBBBBBBBBDD",
-  "DBBBBBBBBBBBBBBD",
-  "DBBEBBBBBBBBEBBD",
-  "DBBBBBLNNLBBBBBD",
-  ".DBBLLLLLLLLBBD.",
-  ".DBLLLLLLLLLLBD.",
-  "..DBLLLLLLLLBD..",
-  "..DBBBBBBBBBBD..",
-  ".DBBBBBBBBBBBBD.",
-  "..DBBD.DD.DBBD..",
-  "..DDD......DDD..",
+  "..BBBBBBBBBBBB..",
+  ".BBBBBBBBBBBBBB.",
+  ".BBEELBBBBLEEBB.",
+  ".BBEELBBBBLEEBB.",
+  ".BBBPBBLLBBPBBB.",
+  ".BBBBBLNNLBBBBB.",
+  "..BBBBBLLBBBBB..",
+  "D....BBBBBB.....",
+  "DD...BBBBBB.....",
+  "DDD...B..B......",
+  "................",
+  "................",
 ];
 
+/** Tall pink ears, tiny body, cotton-tail accent. */
 const RABBIT: string[] = [
-  "...DAD....DAD...",
-  "...DAD....DAD...",
-  "...DAAD..DAAD...",
-  "...DBAD..DABD...",
-  "...DBBD..DBBD...",
-  "..DBBBDDDDBBBD..",
-  ".DBBBBBBBBBBBBD.",
-  ".DBEBBBBBBBBEBD.",
-  ".DBBBBBNNBBBBBD.",
-  "..DBBBBBBBBBBD..",
-  "..DBLLLLLLLLBD..",
-  ".DBBLLLLLLLLBBD.",
-  ".DBBBLLLLLLBBBD.",
-  ".DBBBBBBBBBBBBD.",
-  "..DBBD.DD.DBBD..",
-  "..DDD......DDD..",
+  "................",
+  "..A..........A..",
+  "..AA........AA..",
+  "..AA........AA..",
+  "..ABA......ABA..",
+  "...BBBBBBBBBB...",
+  "..BBEEBBBBEEBB..",
+  "..BBEEBBBBEEBB..",
+  "..BBBPBBBBPBBB..",
+  "..BBBBBNNBBBB...",
+  "...BBBBBBBBBB...",
+  ".....BBBBBB.....",
+  ".....BBBBBB..A..",
+  "......B..B..A...",
+  "................",
+  "................",
 ];
 
 export const SPECIES_SPRITES: Record<Species, string[]> = {
@@ -72,20 +83,21 @@ export const SPECIES_SPRITES: Record<Species, string[]> = {
   rabbit: RABBIT,
 };
 
-/** Eye cell positions per species (col, row), used for blink/sleep overlays. */
+function collectEyes(map: string[]): Array<[number, number]> {
+  const cells: Array<[number, number]> = [];
+  map.forEach((row, y) => {
+    [...row].forEach((ch, x) => {
+      if (ch === "E") cells.push([x, y]);
+    });
+  });
+  return cells;
+}
+
+/** Eye cell positions (col, row) for blink/sleep overlays — derived from maps. */
 export const EYE_CELLS: Record<Species, Array<[number, number]>> = {
-  cat: [
-    [3, 7],
-    [12, 7],
-  ],
-  fox: [
-    [3, 7],
-    [12, 7],
-  ],
-  rabbit: [
-    [3, 7],
-    [12, 7],
-  ],
+  cat: collectEyes(CAT),
+  fox: collectEyes(FOX),
+  rabbit: collectEyes(RABBIT),
 };
 
 /** A rectangle in grid coordinates with a palette role. */
@@ -97,35 +109,25 @@ export type OverlayRect = {
   role: "archetype" | "archetypeDark" | "white" | "bodyDark";
 };
 
-/**
- * Outfits are overlays on the chest/neck rows so every species can wear every
- * outfit — this is what makes fusion combinatorial instead of hand-drawn.
- */
+/** Tiny neck scarf — never a chest slab over the chibi body. */
 export const OUTFIT_OVERLAYS: Record<string, OverlayRect[]> = {
-  "studio-hoodie": [
-    { x: 2, y: 12, w: 12, h: 1, role: "archetype" },
-    { x: 3, y: 13, w: 2, h: 1, role: "archetype" },
-    { x: 11, y: 13, w: 2, h: 1, role: "archetype" },
-  ],
+  "studio-hoodie": [{ x: 5, y: 11, w: 6, h: 1, role: "archetype" }],
   "field-apron": [
-    { x: 5, y: 12, w: 6, h: 2, role: "archetype" },
-    { x: 6, y: 11, w: 4, h: 1, role: "archetypeDark" },
+    { x: 5, y: 11, w: 6, h: 1, role: "archetype" },
+    { x: 6, y: 12, w: 4, h: 1, role: "archetypeDark" },
   ],
   "utility-vest": [
-    { x: 2, y: 11, w: 2, h: 3, role: "archetype" },
-    { x: 12, y: 11, w: 2, h: 3, role: "archetype" },
-    { x: 3, y: 12, w: 1, h: 1, role: "white" },
-    { x: 12, y: 12, w: 1, h: 1, role: "white" },
+    { x: 4, y: 11, w: 2, h: 2, role: "archetype" },
+    { x: 10, y: 11, w: 2, h: 2, role: "archetype" },
   ],
   "observatory-coat": [
-    { x: 2, y: 11, w: 2, h: 3, role: "archetype" },
-    { x: 12, y: 11, w: 2, h: 3, role: "archetype" },
-    { x: 7, y: 13, w: 2, h: 1, role: "archetypeDark" },
+    { x: 4, y: 11, w: 2, h: 2, role: "archetype" },
+    { x: 10, y: 11, w: 2, h: 2, role: "archetype" },
   ],
-  "plain-scarf": [{ x: 3, y: 12, w: 10, h: 1, role: "archetype" }],
+  "plain-scarf": [{ x: 5, y: 11, w: 6, h: 1, role: "archetype" }],
 };
 
-/** Handheld accessories rendered beside the right paw (grid coords, can exceed the body box). */
+/** Handheld accessories beside the right paw. */
 export const ACCESSORY_OVERLAYS: Record<string, OverlayRect[]> = {
   "design-tablet": [
     { x: 13, y: 12, w: 3, h: 2, role: "archetype" },

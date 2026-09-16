@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { buildPetProfile, demoEngineInput } from "@/lib/pet-engine";
+import { SPECIES_LABELS, buildPetProfile, demoEngineInput } from "@/lib/pet-engine";
 import { renderSceneSvg } from "@/lib/pet-renderer";
 import UsernameForm from "@/components/UsernameForm";
 
@@ -54,7 +54,7 @@ export default function HomePage() {
               <span className="avatar-fallback">GP</span>
               <div><strong>demo pet</strong><small>fixture profile</small></div>
             </div>
-            <span className="level-pill">{demoProfile.identity.species.toUpperCase()}</span>
+            <span className="level-pill">{SPECIES_LABELS[demoProfile.identity.species].toUpperCase()}</span>
           </div>
 
           <div className="habitat-scene habitat-scene-svg" dangerouslySetInnerHTML={{ __html: demoSvg }} />
