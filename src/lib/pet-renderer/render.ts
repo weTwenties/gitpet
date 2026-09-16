@@ -145,46 +145,97 @@ function drawActionExtras(profile: GitPetProfile, cell: number): string {
     ].join("");
   }
   if (profile.state.action === "celebrating") {
-    const colors = ["#ffd37a", "#f472b6", "#7cf59a", "#38bdf8"];
+    const colors = ["#ffd37a", "#f472b6", "#7cf59a", "#38bdf8", "#c4b5fd", "#fb923c"];
     const spots: Array<[number, number]> = [
       [0.5, 0.5],
       [14.5, 1.2],
       [1.5, 5.5],
       [15, 6.5],
+      [7.5, -0.5],
+      [12, 4],
+      [3.2, 2.2],
     ];
     return spots
       .map(([gx, gy], i) =>
-        rect(gx * cell, gy * cell, cell * 0.55, cell * 0.55, colors[i % colors.length], `class="fx fx-${i}"`),
+        rect(
+          gx * cell,
+          gy * cell,
+          cell * (0.45 + (i % 3) * 0.08),
+          cell * (0.45 + (i % 2) * 0.08),
+          colors[i % colors.length],
+          `class="fx fx-${i % 4}"`,
+        ),
       )
       .join("");
   }
   return "";
 }
 
-const MOOD_BOB_SECONDS: Record<GitPetProfile["state"]["mood"], number> = {
-  happy: 1.6,
-  focused: 2.4,
-  waiting: 2.8,
-  calm: 3.2,
-  sleepy: 5,
+/** Mood drives bob tempo + blink cadence; action swaps the motion recipe. */
+const MOOD_MOTION: Record<
+  GitPetProfile["state"]["mood"],
+  { bob: number; blink: number; amp: number; pulse: number }
+> = {
+  happy: { bob: 1.55, blink: 3.6, amp: 4, pulse: 2.4 },
+  focused: { bob: 2.5, blink: 5.2, amp: 2, pulse: 3.2 },
+  waiting: { bob: 2.9, blink: 4.8, amp: 2.5, pulse: 3.6 },
+  calm: { bob: 3.3, blink: 4.4, amp: 3, pulse: 3.8 },
+  sleepy: { bob: 5.2, blink: 6.5, amp: 1.5, pulse: 5 },
 };
 
-/** Shared <style> (animations, reduced-motion). */
+/** Shared <style> (state choreography + reduced-motion). */
 export function petStyles(profile: GitPetProfile): string {
-  const bob = MOOD_BOB_SECONDS[profile.state.mood];
+  const mood = MOOD_MOTION[profile.state.mood];
+  const action = profile.state.action;
+
+  const bodyAnim =
+    action === "celebrating"
+      ? `gp-celebrate ${Math.max(0.9, mood.bob * 0.55)}s ease-in-out infinite`
+      : action === "resting"
+        ? `gp-breathe ${mood.bob * 1.15}s ease-in-out infinite`
+        : action === "working"
+          ? `gp-work-sway ${mood.bob}s ease-in-out infinite`
+          : `gp-bob ${mood.bob}s ease-in-out infinite`;
+
+  const blinkAnim =
+    action === "resting" ? "none" : `gp-blink ${mood.blink}s steps(1) infinite`;
+
   return `
-  .pet-bob { animation: gp-bob ${bob}s ease-in-out infinite; }
-  .lids-blink rect { opacity: 0; animation: gp-blink 4.4s steps(1) infinite; }
+  .pet-body { animation: ${bodyAnim}; transform-origin: center bottom; transform-box: fill-box; }
+  .pet-action-working .pet-body { transform-origin: 60% 80%; }
+  .lids-blink rect { opacity: 0; animation: ${blinkAnim}; }
   .lids-closed rect { opacity: 1; }
-  .fx { animation: gp-float 2.6s ease-in-out infinite; }
+  .fx { animation: gp-float ${action === "celebrating" ? 1.4 : 2.6}s ease-in-out infinite; }
   .fx-1 { animation-delay: .5s; } .fx-2 { animation-delay: 1s; } .fx-3 { animation-delay: 1.5s; }
-  .aura { animation: gp-pulse 3.4s ease-in-out infinite; transform-origin: center; transform-box: fill-box; }
-  @keyframes gp-bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+  .aura { animation: gp-pulse ${mood.pulse}s ease-in-out infinite; transform-origin: center; transform-box: fill-box; }
+  .screen-glow { animation: gp-screen 1.8s ease-in-out infinite; }
+  .desk-tap { animation: gp-tap ${Math.max(0.7, mood.bob * 0.35)}s steps(2) infinite; }
+  @keyframes gp-bob {
+    0%,100% { transform: translateY(0); }
+    50% { transform: translateY(-${mood.amp}px); }
+  }
+  @keyframes gp-breathe {
+    0%,100% { transform: translateY(0) scale(1, 1); }
+    50% { transform: translateY(1px) scale(1.02, .97); }
+  }
+  @keyframes gp-work-sway {
+    0%,100% { transform: translate(0, 0); }
+    25% { transform: translate(1.5px, -1px); }
+    75% { transform: translate(-1px, -${Math.max(1, mood.amp - 1)}px); }
+  }
+  @keyframes gp-celebrate {
+    0%,100% { transform: translateY(0) rotate(0deg); }
+    25% { transform: translateY(-${mood.amp + 3}px) rotate(-4deg); }
+    50% { transform: translateY(0) rotate(0deg); }
+    75% { transform: translateY(-${mood.amp + 1}px) rotate(4deg); }
+  }
   @keyframes gp-blink { 0%, 92% { opacity: 0; } 93%, 97% { opacity: 1; } 98%, 100% { opacity: 0; } }
   @keyframes gp-float { 0%,100% { transform: translateY(0); opacity: .9; } 50% { transform: translateY(-4px); opacity: .5; } }
   @keyframes gp-pulse { 0%,100% { opacity: .28; transform: scale(1); } 50% { opacity: .5; transform: scale(1.06); } }
+  @keyframes gp-screen { 0%,100% { opacity: .55; } 50% { opacity: 1; } }
+  @keyframes gp-tap { 0%,100% { transform: translateY(0); } 50% { transform: translateY(1px); } }
   @media (prefers-reduced-motion: reduce) {
-    .pet-bob, .lids-blink rect, .fx, .aura { animation: none; }
+    .pet-body, .lids-blink rect, .fx, .aura, .screen-glow, .desk-tap { animation: none; }
   }`;
 }
 
@@ -212,15 +263,17 @@ export function renderPetGroup(profile: GitPetProfile, cell: number): string {
     : [];
 
   return `
-  <g class="pet-bob">
-    <ellipse class="aura" cx="${size / 2}" cy="${size * 0.62}" rx="${size * 0.58}" ry="${size * 0.5}" fill="${aura}"/>
-    ${drawPixelMap(map, cell, fills)}
-    ${drawOverlays(outfit, cell, palette, archetypeColor(profile))}
-    ${drawEyelids(profile, cell, palette)}
-    ${drawEyeSpark(profile, cell)}
-    ${drawOverlays(accessory, cell, palette, secondaryColor(profile))}
-    ${drawEffect(profile, cell)}
-    ${drawActionExtras(profile, cell)}
+  <g class="pet-action-${profile.state.action} pet-mood-${profile.state.mood}" id="gp-pet">
+    <g class="pet-body" id="gp-pet-body">
+      <ellipse class="aura" cx="${size / 2}" cy="${size * 0.62}" rx="${size * 0.58}" ry="${size * 0.5}" fill="${aura}"/>
+      ${drawPixelMap(map, cell, fills)}
+      ${drawOverlays(outfit, cell, palette, archetypeColor(profile))}
+      ${drawEyelids(profile, cell, palette)}
+      ${drawEyeSpark(profile, cell)}
+      ${drawOverlays(accessory, cell, palette, secondaryColor(profile))}
+      ${drawEffect(profile, cell)}
+      ${drawActionExtras(profile, cell)}
+    </g>
   </g>`;
 }
 
@@ -238,38 +291,46 @@ export function renderPetSvg(profile: GitPetProfile, sizePx = 192): string {
 /** Workstation prop drawn on the desk, keyed by fusion result. */
 function drawWorkstation(profile: GitPetProfile, x: number, y: number): string {
   const color = archetypeColor(profile);
+  const working = profile.state.action === "working";
+  const glow = working ? ` class="screen-glow"` : "";
   switch (profile.appearance.workstation) {
     case "dual-monitor":
       return [
         rect(x, y - 26, 30, 20, "#131a16", `rx="2"`),
-        rect(x + 2, y - 24, 26, 16, color, `opacity="0.85"`),
+        rect(x + 2, y - 24, 26, 16, color, `opacity="0.85"${glow}`),
         rect(x + 34, y - 22, 24, 16, "#131a16", `rx="2"`),
-        rect(x + 36, y - 20, 20, 12, color, `opacity="0.6"`),
+        rect(x + 36, y - 20, 20, 12, color, `opacity="0.6"${glow}`),
       ].join("");
     case "terminal-rig":
       return [
         rect(x, y - 26, 34, 22, "#131a16", `rx="2"`),
-        rect(x + 3, y - 23, 22, 3, color),
-        rect(x + 3, y - 17, 16, 3, color, `opacity="0.7"`),
-        rect(x + 3, y - 11, 26, 3, color, `opacity="0.45"`),
+        rect(x + 3, y - 23, 22, 3, color, glow.trim()),
+        rect(x + 3, y - 17, 16, 3, color, `opacity="0.7"${glow}`),
+        rect(x + 3, y - 11, 26, 3, color, `opacity="0.45"${glow}`),
+        working
+          ? rect(x + 28, y - 6, 8, 3, color, `class="desk-tap" opacity="0.9"`)
+          : "",
       ].join("");
     case "workbench":
       return [
         rect(x, y - 12, 34, 8, "#4a3625"),
-        rect(x + 4, y - 20, 5, 10, color),
+        rect(x + 4, y - 20, 5, 10, color, working ? `class="desk-tap"` : ""),
         rect(x + 14, y - 17, 12, 4, "#9aa5b8"),
         rect(x + 30, y - 22, 4, 12, color, `opacity="0.8"`),
       ].join("");
     case "chart-station":
       return [
         rect(x, y - 30, 36, 24, "#131a16", `rx="2"`),
-        rect(x + 4, y - 14, 5, 6, color),
-        rect(x + 12, y - 20, 5, 12, color, `opacity="0.8"`),
-        rect(x + 20, y - 24, 5, 16, color, `opacity="0.6"`),
-        rect(x + 28, y - 17, 5, 9, color, `opacity="0.9"`),
+        rect(x + 4, y - 14, 5, 6, color, glow.trim()),
+        rect(x + 12, y - 20, 5, 12, color, `opacity="0.8"${glow}`),
+        rect(x + 20, y - 24, 5, 16, color, `opacity="0.6"${glow}`),
+        rect(x + 28, y - 17, 5, 9, color, `opacity="0.9"${glow}`),
       ].join("");
     default:
-      return rect(x + 6, y - 16, 22, 12, "#131a16", `rx="2"`);
+      return [
+        rect(x + 6, y - 16, 22, 12, "#131a16", `rx="2"`),
+        working ? rect(x + 8, y - 14, 18, 8, color, `class="screen-glow" opacity="0.7"`) : "",
+      ].join("");
   }
 }
 

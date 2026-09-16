@@ -2,7 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
-import { buildPetProfile, type GitPetProfile } from "@/lib/pet-engine";
+import {
+  ARCHETYPE_LABELS,
+  buildPetProfile,
+  buildProfileDossier,
+  type GitPetProfile,
+} from "@/lib/pet-engine";
 import { renderSceneSvg } from "@/lib/pet-renderer";
 import {
   collectPetData,
@@ -12,6 +17,7 @@ import {
   type GitHubPublicUser,
 } from "@/lib/github/collector";
 import CopyButton from "@/components/CopyButton";
+import InteractiveHabitat from "@/components/InteractiveHabitat";
 import UsernameForm from "@/components/UsernameForm";
 
 type UserPetPageProps = {
@@ -31,14 +37,6 @@ export async function generateMetadata({ params }: UserPetPageProps): Promise<Me
     alternates: { canonical: `/${username}` },
   };
 }
-
-const ARCHETYPE_LABELS: Record<string, string> = {
-  interface: "Interface crafter",
-  backend: "Backend keeper",
-  systems: "Systems tinkerer",
-  data: "Data stargazer",
-  unknown: "New explorer",
-};
 
 async function siteOrigin(): Promise<string> {
   const headerList = await headers();
@@ -62,7 +60,9 @@ function RateLimitedState({ username }: { username: string }) {
           The public GitHub API rate limit was reached while summoning <strong>@{username}</strong>&apos;s pet.
           Please try again in a few minutes.
         </p>
-        <Link className="pp-back" href="/">← Back to home</Link>
+        <Link className="pp-back" href="/">
+          ← Back to home
+        </Link>
       </section>
     </main>
   );
@@ -77,12 +77,14 @@ function ProfileContent({
   user: GitHubPublicUser;
   origin: string;
 }) {
-  const sceneSvg = renderSceneSvg(profile, { width: 640, height: 440 });
+  const dossier = buildProfileDossier(profile);
+  const sceneSvg = renderSceneSvg(profile, { width: 720, height: 480 });
   const profileUrl = `${origin}/${profile.username}`;
   const cardUrl = `${origin}/api/card/${profile.username}`;
   const embedSnippet = `[![My GitPet](${cardUrl})](${profileUrl})`;
-  const archetypeLabel = ARCHETYPE_LABELS[profile.tech.primaryArchetype] ?? "Explorer";
   const syncedTime = new Date(profile.lastSyncedAt).toUTCString();
+  const secondary = profile.tech.secondaryArchetype;
+  const tertiary = profile.tech.tertiaryArchetype;
 
   return (
     <main className="pp-shell">
@@ -96,81 +98,171 @@ function ProfileContent({
         </div>
       </nav>
 
+      <header className="pp-masthead">
+        <div className="pp-owner">
+          {user.avatar_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={user.avatar_url} alt="" width={48} height={48} />
+          ) : (
+            <span className="avatar-fallback">{profile.username.slice(0, 2).toUpperCase()}</span>
+          )}
+          <div>
+            <a href={user.html_url} target="_blank" rel="noreferrer">
+              @{profile.username} ↗
+            </a>
+            <small>{user.name ?? "GitHub explorer"}</small>
+          </div>
+        </div>
+
+        <div className="pp-masthead-identity">
+          <p className="pp-kicker">HABITAT DOSSIER</p>
+          <h1 className="pp-name">{profile.identity.name}</h1>
+          <p className="pp-tagline">
+            {profile.identity.personality} {profile.identity.species} · {dossier.archetypeLabel}
+          </p>
+          <p className="pp-lede">{dossier.personalityBlurb}</p>
+        </div>
+
+        <aside className="pp-rank" aria-label={`Activity band: ${dossier.band.label}`}>
+          <span className="pp-rank-label">WEEK</span>
+          <strong className="pp-rank-value">{dossier.band.rank}</strong>
+          <small>{dossier.band.label}</small>
+        </aside>
+      </header>
+
       <section className="pp-stage">
-        <div
-          className="pp-scene"
-          // Renderer output is generated from validated data, never user-supplied markup.
-          dangerouslySetInnerHTML={{ __html: sceneSvg }}
+        <InteractiveHabitat
+          svg={sceneSvg}
+          label={`${profile.identity.name} habitat`}
+          caption={`${profile.appearance.roomTheme.replace(/-/g, " ")} · ${profile.state.lighting} light · ${dossier.stateLine}`}
         />
 
-        <aside className="pp-panel">
-          <header className="pp-owner">
-            {user.avatar_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={user.avatar_url} alt="" width={44} height={44} />
-            ) : (
-              <span className="avatar-fallback">{profile.username.slice(0, 2).toUpperCase()}</span>
-            )}
-            <div>
-              <a href={user.html_url} target="_blank" rel="noreferrer">
-                @{profile.username} ↗
-              </a>
-              <small>{user.name ?? "GitHub explorer"}</small>
+        <div className="pp-dossier">
+          <section className="pp-block">
+            <h2 className="pp-block-title">Today&apos;s rhythm</h2>
+            <p className="pp-block-lede">{dossier.band.blurb}</p>
+            <ul className="pp-rhythm">
+              <li>
+                <span>Mood</span>
+                <strong>{profile.state.mood}</strong>
+                <em>{dossier.moodBlurb}</em>
+              </li>
+              <li>
+                <span>Action</span>
+                <strong>{profile.state.action}</strong>
+                <em>{dossier.actionBlurb}</em>
+              </li>
+              <li>
+                <span>Lighting</span>
+                <strong>{profile.state.lighting}</strong>
+                <em>Window tone shifts with the day&apos;s public pace.</em>
+              </li>
+            </ul>
+          </section>
+
+          <section className="pp-block">
+            <h2 className="pp-block-title">Tech DNA</h2>
+            <p className="pp-block-lede">{dossier.archetypeBlurb}</p>
+
+            <div className="pp-archetypes">
+              <div className="pp-archetype pp-archetype-primary">
+                <span>Primary</span>
+                <strong>{dossier.archetypeLabel}</strong>
+              </div>
+              {secondary ? (
+                <div className="pp-archetype">
+                  <span>Secondary</span>
+                  <strong>{ARCHETYPE_LABELS[secondary]}</strong>
+                </div>
+              ) : null}
+              {tertiary ? (
+                <div className="pp-archetype">
+                  <span>Tertiary</span>
+                  <strong>{ARCHETYPE_LABELS[tertiary]}</strong>
+                </div>
+              ) : null}
             </div>
-          </header>
 
-          <h1 className="pp-name">{profile.identity.name}</h1>
-          <p className="pp-lineage">
-            {profile.identity.personality} {profile.identity.species} · {archetypeLabel}
-          </p>
+            <div className="pp-confidence" aria-label={`Fusion confidence ${dossier.confidencePct}%`}>
+              <div className="pp-confidence-head">
+                <span>Fusion confidence</span>
+                <strong>{dossier.confidencePct}%</strong>
+              </div>
+              <div className="pp-confidence-track">
+                <i style={{ width: `${dossier.confidencePct}%` }} />
+              </div>
+              <small>
+                From {profile.tech.evidence.reposConsidered} repos · {profile.tech.evidence.windowDays}
+                -day window
+              </small>
+            </div>
 
-          <div className="pp-chips">
-            <span className="pp-chip">{profile.state.mood}</span>
-            <span className="pp-chip">{profile.state.action}</span>
-            <span className="pp-chip">{profile.state.lighting}</span>
-          </div>
+            {dossier.languages.length > 0 ? (
+              <div className="pp-langs">
+                <small>GITHUB-VISIBLE STACK</small>
+                {dossier.languages.map((language) => (
+                  <div className="pp-lang" key={language.name}>
+                    <span>{language.name}</span>
+                    <i style={{ width: `${language.pct}%` }} />
+                    <b>{language.pct}%</b>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="pp-empty-note">No dominant public language signal in the window.</p>
+            )}
+          </section>
 
-          {profile.tech.languages.length > 0 && (
-            <div className="pp-langs">
-              <small>GITHUB-VISIBLE STACK</small>
-              {profile.tech.languages.slice(0, 4).map((language) => (
-                <div className="pp-lang" key={language.name}>
-                  <span>{language.name}</span>
-                  <i style={{ width: `${Math.max(6, Math.round(language.weight * 100))}%` }} />
+          <section className="pp-block">
+            <h2 className="pp-block-title">Habitat kit</h2>
+            <p className="pp-block-lede">
+              Fusion fills fixed slots from archetype mix — outfit, desk, and room stay aligned.
+            </p>
+            <dl className="pp-kit">
+              {dossier.habitat.map((item) => (
+                <div key={item.slot}>
+                  <dt>{item.slot}</dt>
+                  <dd>{item.value}</dd>
                 </div>
               ))}
+            </dl>
+            <div className="pp-identity-bits">
+              {dossier.identityBits.map((bit) => (
+                <span key={bit.label} className="pp-bit">
+                  <i>{bit.label}</i>
+                  {bit.value}
+                </span>
+              ))}
             </div>
-          )}
+          </section>
 
-          <dl className="pp-stats">
-            <div>
-              <dt>Active days</dt>
-              <dd>{profile.state.activeDays}</dd>
-            </div>
-            <div>
-              <dt>Pull requests</dt>
-              <dd>{profile.state.pullRequests}</dd>
-            </div>
-            <div>
-              <dt>Reviews</dt>
-              <dd>{profile.state.reviews}</dd>
-            </div>
-          </dl>
+          <section className="pp-block">
+            <h2 className="pp-block-title">Care log</h2>
+            <p className="pp-block-lede">Public activity that shaped this week&apos;s band — counts, not a vanity score.</p>
+            <dl className="pp-care">
+              {dossier.care.map((metric) => (
+                <div key={metric.label}>
+                  <dt>{metric.label}</dt>
+                  <dd>{metric.value}</dd>
+                  <small>{metric.hint}</small>
+                </div>
+              ))}
+            </dl>
+          </section>
 
-          <div className="pp-share">
-            <small>SHARE</small>
+          <section className="pp-block pp-block-share">
+            <h2 className="pp-block-title">Share</h2>
             <div className="pp-share-buttons">
               <CopyButton value={profileUrl} label="Copy profile link" />
               <CopyButton value={embedSnippet} label="Copy README embed" copiedLabel="Markdown copied!" />
             </div>
             <code className="pp-embed">{embedSnippet}</code>
-          </div>
-
-          <footer className="pp-meta">
-            <span>{profile.source.label}</span>
-            <span>Last synced {syncedTime}</span>
-          </footer>
-        </aside>
+            <footer className="pp-meta">
+              <span>{profile.source.label}</span>
+              <span>Last synced {syncedTime}</span>
+            </footer>
+          </section>
+        </div>
       </section>
 
       <p className="pp-a11y">
